@@ -1,5 +1,5 @@
 ---
-title: "Análise da Base de Dados da Web of science"
+title: "Análise da Base de Dados da Scopus"
 author: "Claudiano Cruz Neto"
 date: "20/02/2022"
 output: html_document
@@ -19,13 +19,13 @@ library(tidyverse)
 
 # Importando base de dados 
 ```{r}
-file <- "https://github.com/cccneto/PSA/blob/master/data/savedrecs_web.bib?raw=true"
+file <- "https://github.com/cccneto/PSA/blob/master/data/scopus_full.bib?raw=true"
 ```
 
 # convertendo em dataframes
 
 ```{r message=FALSE, warning=FALSE}
-M <- convert2df(file = file, dbsource = "wos", format = "bibtex")
+M <- convert2df(file = file, dbsource = "scopus", format = "bibtex")
 ```
 
 * AU - AutoreS
