@@ -56,6 +56,13 @@ M <- mergeDbSources(M_web, M_scopus, remove.duplicated=TRUE) # o resultado é 22
 * UT - Identificador de artigo exclusivo da 
 * BD - Banco de Dados Bibliográfico 
 
+```{r}
+# Salvando a base no formato compatível com R para evitar possiveis erros no shinypp
+# saveRDS(M, file = "bibliometric_data.rds")
+```
+
+
+
 ## Análise Bibliométrica da Base
 
 ```{r}
