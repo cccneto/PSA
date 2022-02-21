@@ -1,0 +1,367 @@
+---
+title: "Análise Conjunta das Bases Scopus e Web of Science"
+author: "Claudiano Cruz Neto"
+date: "20/02/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+```{r warning=FALSE, include=FALSE}
+library(bibliometrix)
+library(bibtex)
+library(tidyverse)
+```
+
+# Importando base de dados 
+```{r}
+file_scopus <- "https://github.com/cccneto/PSA/blob/master/data/scopus_full.bib?raw=true"
+file_web <- "https://github.com/cccneto/PSA/blob/master/data/savedrecs_web.bib?raw=true"
+
+```
+
+# convertendo em dataframes
+
+```{r message=FALSE, warning=FALSE}
+M_web <- convert2df(file = file_web, dbsource = "wos", format = "bibtex")
+M_scopus <- convert2df(file = file_scopus, dbsource = "scopus", format = "bibtex")
+
+```
+
+# Realizando a junção e retirando observações duplicadas
+```{r}
+M <- mergeDbSources(M_web, M_scopus, remove.duplicated=TRUE) # o resultado é 220 x 29
+```
+
+## Descrição das variáveis
+
+* AU - AutoreS
+* TI - Título do documento de 
+* SO - Nome da Publicação (ou Fonte)
+* JI - Abreviatura da fonte ISO
+* DT - Tipo de documento 
+* DE - Palavras-chave dos Autores 
+* ID - Palavras-chave de associadas pelo banco de dados SCOPUS ou ISI
+* AB - Resumo 
+* C1 - Endereço do Autor 
+* RP - Endereço de reimpressão 
+* CR - Referências citadas
+* TC - Tempos de citados
+* PY - Ano 
+* SC - Categoria de assunto 
+* UT - Identificador de artigo exclusivo da 
+* BD - Banco de Dados Bibliográfico 
+
+## Análise Bibliométrica da Base
+
+```{r}
+results <- biblioAnalysis(M, sep = ";")
+```
+ 
+ 
+O primeiro passo é realizar uma análise descritiva do quadro de dados bibliográficos. A função biblioAnalysis calcula as principais medidas bibliométricas usando esta sintaxe:
+
+* Articles - o número total de manuscritos
+* Authors - a distribuição de frequência dos autores
+* AuthorsFrac - a distribuição de frequência dos autores (fracionada)
+* FirstAuthors - autor correspondente de cada manuscrito
+* nAUperPaper - o número de autores por manuscrito
+* Appearances - o número de aparições do autor
+* nAuthors - o número de autores
+* AuMultiAuthoredArt - o número de autores de artigos com vários autores
+* MostCitedPapers - a lista de manuscritos classificados por citações
+* Years - ano de publicação de cada manuscrito
+* FirstAffiliation - a afiliação do autor correspondente
+* Affiliations - a distribuição de frequência de afiliações (de todos os coautores para cada artigo)
+* Aff_frac - a distribuição de frequência fracionada de afiliações (de todos os coautores de cada artigo)
+* CO o país de afiliação do autor correspondente
+* Countries - a distribuição de frequência dos países afiliados
+* CountryCollaboration - os índices de colaboração intra-país (SCP) e inter-países (MCP)
+* TotalCitation - o número de vezes que cada manuscrito foi citado
+* TCperYear - o número médio anual de vezes que cada manuscrito foi citado
+* Sources - a distribuição de frequência das fontes (revistas, livros, etc.)
+* DE - a distribuição de frequência das palavras-chave dos autores
+* ID - a distribuição de frequência das palavras-chave associadas ao manuscrito pelas bases de dados SCOPUS e Thomson Reuters’ ISI Web of Knowledge
+
+```{r}
+options(width=100)
+S <- summary(object = results, k = 10, pause = FALSE)
+```
+
+## Alguns gráficos para testar:
+
+```{r}
+plot(x = results, k = 10, pause = FALSE)
+```
+ 
+## Quais os papers mais citados?
+
+```{r}
+CR <- citations(M, field = "article", sep = ";")
+cbind(CR$Cited[1:10])
+```
+
+## Para sabermos quais autores são os mais citados:
+
+```{r}
+CR <- citations(M, field = "author", sep = ";")
+cbind(CR$Cited[1:10])
+```
+
+## Para conhecermos os autores locais mais citados:
+
+```{r}
+CR <- localCitations(M, sep = ";")
+CR$Authors[1:10,]
+```
+
+## E os artigos mais citados:
+```{r}
+CR$Papers[1:10,]
+```
+
+## Ranking de dominância dos autores
+
+```{r}
+DF <- dominance(results, k = 10)
+DF
+```
+O Fator de Dominância é uma razão que indica a fração de artigos com vários autores em que um acadêmico aparece como primeiro autor. Neste exemplo, Almeida domina sua equipe de pesquisa porque aparece como o primeiro autor em dois dos seus artigos. No entanto, considerando por Artigos, Wunder lidera o ranking.
+
+## H-indice dos Autores
+
+O índice h é uma métrica em nível de autor que tenta medir a produtividade e o impacto da citação das publicações de um cientista ou acadêmico. O índice é baseado no conjunto dos trabalhos mais citados do cientista e no número de citações que eles receberam em outras publicações.
+
+A função Hindex calcula o índice H dos autores ou o índice H das fontes e suas variantes (índice g e índice m) em uma coleção bibliográfica. Para calcular o índice h de Lutz Bornmann nesta coleção:
+
+```{r}
+indices <- Hindex(M, field = "author", elements="BORNMANN L", sep = ";", years = 10)
+
+# Bornmann's impact indices:
+indices$H
+```
+
+Para calcular o índice h dos 10 primeiros autores mais produtivos (nesta coleção):
+
+```{r}
+authors=gsub(","," ",names(results$Authors)[1:10])
+
+indices <- Hindex(M, field = "author", elements=authors, sep = ";", years = 50)
+
+indices$H
+```
+
+## Produtividade dos principais autores ao longo do tempo
+
+```{r}
+topAU <- authorProdOverTime(M, k = 10, graph = TRUE)
+```
+
+## Tabela Produtividade do autor por ano
+
+```{r}
+head(topAU$dfAU)
+```
+
+## Estimativa do coeficiente da Lei de Lotka
+
+A função lotka estima os coeficientes da lei de Lotka para produtividade científica (Lotka A.J., 1926). A lei de Lotka descreve a frequência de publicação por autores em qualquer campo como uma lei do inverso do quadrado, onde o número de autores que publicam um certo número de artigos é uma razão fixa para o número de autores que publicam um único artigo. Essa suposição implica que o coeficiente beta teórico da lei de Lotka é igual a 2.
+
+Utilizando a função lotka é possível estimar o coeficiente Beta de nosso acervo bibliográfico e avaliar, por meio de um teste estatístico, a similaridade desta distribuição empírica com a teórica.
+
+```{r}
+L <- lotka(results)
+
+# Produtividade do autor. Distribuição Empírica
+L$AuthorProd
+```
+
+```{r}
+# Estimativa do Coeficiente Beta
+L$Beta
+```
+
+```{r}
+# Constante
+L$C
+```
+
+```{r}
+# Qualidade de Ajuste
+L$R2
+```
+
+```{r}
+# Valor P do teste de duas amostras K-S
+L$p.value
+```
+
+A tabela 'L$AuthorProd' mostra a distribuição observada da produtividade científica.
+
+O coeficiente Beta estimado é de 2,26 com qualidade de ajuste igual a 0,84. O teste de duas amostras de Kolmogorov-Smirnoff fornece um p-valor de 0,89, o que significa que há uma diferença significativa entre as distribuições observadas e teóricas de Lotka. É possível comparar as duas distribuições usando a função plot:
+
+```{r}
+# Distribuição Observada
+Observed=L$AuthorProd[,3]
+
+# Distribuição Teórica com Beta = 2
+Theoretical=10^(log10(L$C)-2*log10(L$AuthorProd[,1]))
+
+plot(L$AuthorProd[,1],Theoretical,type="l",col="red",ylim=c(0, 1), xlab="Artigos",ylab="Freq. dos Autores",main="Produtividade Científica")
+lines(L$AuthorProd[,1],Observed,col="blue")
+legend(x="topright",c("Teórico (B=2)","Observado"),col=c("red","blue"),lty = c(1,1,1),cex=0.6,bty="n")
+```
+
+## Matrizes de redes bibliográficas
+
+Os atributos do manuscrito estão ligados entre si através do próprio manuscrito: autor(es) para periódico, palavras-chave para data de publicação, etc. Essas conexões de diferentes atributos geram redes bipartidas que podem ser representadas como matrizes retangulares (Manuscritos x Atributos).
+
+Além disso, as publicações científicas contêm regularmente referências a outros trabalhos científicos. Isso gera uma rede adicional, ou seja, rede de cocitação ou acoplamento. Essas redes são analisadas para capturar propriedades significativas do sistema de pesquisa subjacente e, em particular, para determinar a influência de unidades bibliométricas, como acadêmicos e periódicos.
+
+### Redes bipartidas
+cocMatrix é uma função geral para calcular uma rede bipartida selecionando um dos atributos de metadados. Por exemplo, para criar uma rede Manuscrito x Fonte de Publicação você deve usar a tag de campo “SO”:
+
+```{r}
+A <- cocMatrix(M, Field = "SO", sep = ";")
+```
+
+```{r}
+# Classificando, em ordem decrescente, as somas das colunas de A, tem-se as fontes de publicação mais relevantes:
+sort(Matrix::colSums(A), decreasing = TRUE)[1:5]
+```
+
+Seguindo essa abordagem, você pode calcular várias redes bipartidas:
+```{r}
+# Rede de Citações
+A <- cocMatrix(M, Field = "CR", sep = ".  ")
+```
+
+```{r}
+# Rede de Autores
+ A <- cocMatrix(M, Field = "AU", sep = ";")
+```
+
+```{r}
+# Rede de paises
+M <- metaTagExtraction(M, Field = "AU_CO", sep = ";")
+A <- cocMatrix(M, Field = "AU_CO", sep = ";")
+```
+
+```{r}
+# Rede de palavras-chave do autor
+A <- cocMatrix(M, Field = "DE", sep = ";")
+
+```
+
+```{r}
+# Rede de Palavras chave +
+A <- cocMatrix(M, Field = "ID", sep = ";")
+```
+
+
+### Calculando a rede clássica de acoplamento dos artigos
+```{r}
+NetMatrix <- biblioNetwork(M, analysis = "coupling", network = "references", sep = ".  ")
+```
+
+```{r}
+NetMatrix <- biblioNetwork(M, analysis = "coupling", network = "authors", sep = ";")
+
+net=networkPlot(NetMatrix,  normalize = "salton", weighted=NULL, n = 100, Title = "Authors' Coupling", type = "fruchterman", size=5,size.cex=T,remove.multiple=TRUE,labelsize=0.8,label.n=10,label.cex=F)
+```
+
+### Co-citação bibliográfica
+
+```{r}
+NetMatrix <- biblioNetwork(M, analysis = "co-citation", network = "references", sep = ".  ")
+```
+
+### Colaboração Bibliográfica
+```{r}
+NetMatrix <- biblioNetwork(M, analysis = "collaboration", network = "authors", sep = ";")
+```
+
+```{r}
+NetMatrix <- biblioNetwork(M, analysis = "collaboration", network = "countries", sep = ";")
+```
+
+## Análise descritiva das características do gráfico de rede
+
+```{r}
+# Rede clássica de coocorrências de palavras-chave
+NetMatrix <- biblioNetwork(M, analysis = "co-occurrences", network = "keywords", sep = ";")
+netstat <- networkStat(NetMatrix)
+```
+
+## As estatísticas resumidas da rede
+
+Este grupo de estatísticas permite descrever as propriedades estruturais de uma rede:
+
+* *Size* é o número de vértices que compõem a rede;
+* *Density* é a proporção de arestas presentes de todas as arestas possíveis na rede;
+* *Transitivity* é a razão de triângulos para triplos conectados;
+* *Diameter*  é a distância geodésica mais longa (comprimento do caminho mais curto entre dois nós) na rede;
+* *Degree distribution* é a distribuição cumulativa dos graus dos vértices;
+* *Degree Centralization* é o grau normalizado da rede geral;
+* *Closeness centralization* é o inverso normalizado da distância geodésica média do vértice para outros na rede;
+* *Eigenvector centralization* é o primeiro autovetor da matriz do gráfico;
+* *Betweenness centralization*  é o número normalizado de geodésicas que passam pelo vértice;
+* *Average path length* é a média da distância mais curta entre cada par de vértices na rede.
+
+```{r}
+names(netstat$network)
+```
+
+### Colaboração Científica do País
+
+```{r}
+M <- metaTagExtraction(M, Field = "AU_CO", sep = ";")
+NetMatrix <- biblioNetwork(M, analysis = "collaboration", network = "countries", sep = ";")
+
+# Plotando a rede
+net=networkPlot(NetMatrix, n = dim(NetMatrix)[1], Title = "Colaboração do país", type = "circle", size=TRUE, remove.multiple=FALSE,labelsize=0.7,cluster="none")
+
+```
+
+### Criar rede de coocorrências de palavras-chave
+
+```{r}
+# Criar rede de coocorrências de palavras-chave
+
+NetMatrix <- biblioNetwork(M, analysis = "co-occurrences", network = "keywords", sep = ";")
+
+# Plot the network
+net=networkPlot(NetMatrix, normalize="association", weighted=T, n = 30, Title = "coocorrências de palavras-chave", type = "fruchterman", size=T,edgesize = 5,labelsize=0.7)
+```
+
+### Análise de co-palavras: a estrutura conceitual de um campo
+
+O objetivo da análise de co-palavras é mapear a estrutura conceitual de um framework usando as coocorrências de palavras em uma coleção bibliográfica. A análise pode ser realizada por meio de técnicas de redução de dimensionalidade como Multidimensional Scaling (MDS), Análise de Correspondência (CA) ou Análise de Correspondência Múltipla (MCA).
+
+Aqui, mostramos um exemplo que executa um CA ou MCA para desenhar uma estrutura conceitual do campo e K-means clustering para identificar clusters de documentos que expressam conceitos comuns. Os resultados são plotados em um mapa bidimensional.
+
+```{r}
+# Estrutura conceitual usando palavras-chave (method="CA")
+
+CS <- conceptualStructure(M,field="ID", method="CA", minDegree=4, clust=5, stemming=FALSE, labelsize=10, documents=10)
+```
+
+### Rede de citações diretas históricas
+
+O mapa historiográfico é um gráfico proposto por E. Garfield (2004) para representar um mapa de rede cronológica das citações diretas mais relevantes resultantes de um acervo bibliográfico. A função gera uma matriz de rede de citação direta cronológica que pode ser plotada usando histPlot:
+
+```{r}
+# Crie uma rede de citações históricas
+options(width=130)
+histResults <- histNetwork(M, min.citations = 1, sep = ";")
+```
+
+```{r}
+# Traçar uma rede de cocitação histórica
+net <- histPlot(histResults, n=15, size = 10, labelsize=5)
+```
+

@@ -15,7 +15,10 @@ M_web <- convert2df(file = file_web, dbsource = "wos", format = "bibtex")
 M_scopus <- convert2df(file = file_scopus, dbsource = "scopus", format = "bibtex")
 
 # realizando junção das bases
-base_full <- mergeDbSources(M_web, M_scopus, remove.duplicated=TRUE) # o resultado é 220 x 29
 
+M <- mergeDbSources(M_web, M_scopus, remove.duplicated=TRUE) # o resultado é 220 x 29
 
-convert2df(base_full, dbsource = )
+results <- biblioAnalysis(M, sep = ";")
+
+options(width=100)
+S <- summary(object = results, k = 10, pause = FALSE)
