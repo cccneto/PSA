@@ -33,7 +33,7 @@ M_scopus <- convert2df(file = file_scopus, dbsource = "scopus", format = "bibtex
 ```
 
 # Realizando a junção e retirando observações duplicadas
-```{r}
+```{r include=FALSE}
 M <- mergeDbSources(M_web, M_scopus, remove.duplicated=TRUE) # o resultado é 220 x 29
 ```
 
@@ -53,12 +53,18 @@ M <- mergeDbSources(M_web, M_scopus, remove.duplicated=TRUE) # o resultado é 22
 * TC - Tempos de citados
 * PY - Ano 
 * SC - Categoria de assunto 
-* UT - Identificador de artigo exclusivo da 
+* UT - Identificador de artigo exclusivo
 * BD - Banco de Dados Bibliográfico 
 
 ```{r}
 # Salvando a base no formato compatível com R para evitar possiveis erros no shinypp
 # saveRDS(M, file = "bibliometric_data.rds")
+
+```
+
+```{r include=FALSE}
+# rodando shinyapps
+# bibliometrix::biblioshiny()
 ```
 
 
@@ -271,6 +277,7 @@ A <- cocMatrix(M, Field = "ID", sep = ";")
 
 
 ### Calculando a rede clássica de acoplamento dos artigos
+
 ```{r}
 NetMatrix <- biblioNetwork(M, analysis = "coupling", network = "references", sep = ".  ")
 ```
@@ -278,8 +285,20 @@ NetMatrix <- biblioNetwork(M, analysis = "coupling", network = "references", sep
 ```{r}
 NetMatrix <- biblioNetwork(M, analysis = "coupling", network = "authors", sep = ";")
 
-net=networkPlot(NetMatrix,  normalize = "salton", weighted=NULL, n = 100, Title = "Authors' Coupling", type = "fruchterman", size=5,size.cex=T,remove.multiple=TRUE,labelsize=0.8,label.n=10,label.cex=F)
+net=networkPlot(NetMatrix,  normalize = "salton", weighted=NULL, n = 100, Title = "Acoplamento de Autores", type = "fruchterman", size=5,size.cex=T,remove.multiple=TRUE,labelsize=0.8,label.n=10,label.cex=F)
 ```
+
+### Análise de acoplamento de autores
+
+Realiza uma análise de rede de acoplamento e plota os resultados da detecção da comunidade em um mapa bidimensional (Mapa de Acoplamento). A análise pode ser realizada em três unidades diferentes: documentos, autores ou fontes e a força de acoplamento pode ser medida usando a abordagem clássica (acoplada por referências) ou uma nova abordagem baseada no conteúdo da unidade (palavras-chave ou termos de títulos e resumos)
+
+```{r}
+res <- couplingMap(M, analysis = "authors", field = "CR", n = 250, impact.measure="local",
+                   minfreq = 3, size = 0.5, repel = TRUE)
+plot(res$map)
+
+```
+
 
 ### Co-citação bibliográfica
 
@@ -334,6 +353,17 @@ net=networkPlot(NetMatrix, n = dim(NetMatrix)[1], Title = "Colaboração do paí
 
 ```
 
+### Mapa Temático por co-palavras
+
+O mapa temático é baseado na análise e agrupamento de redes de co-palavras. A metodologia é inspirada na proposta de Cobo et al. (2011).
+
+```{r}
+res <- thematicMap(M, field = "ID", n = 250, minfreq = 5, size = 0.5, repel = TRUE)
+plot(res$map)
+
+```
+
+
 ### Criar rede de coocorrências de palavras-chave
 
 ```{r}
@@ -356,6 +386,15 @@ Aqui, mostramos um exemplo que executa um CA ou MCA para desenhar uma estrutura 
 
 CS <- conceptualStructure(M,field="ID", method="CA", minDegree=4, clust=5, stemming=FALSE, labelsize=10, documents=10)
 ```
+
+### Diagrama de Sankey
+
+Nos ajuda a visualizar os principais itens (10 por exemplo) de três campos (autores, palavras-chave, E afiliação) e como eles estão relacionados por meio de um diagrama de Sankey.
+
+```{r}
+threeFieldsPlot(M, fields = c("AU", "DE", "C1"), n = c(10, 10, 10))
+```
+
 
 ### Rede de citações diretas históricas
 
