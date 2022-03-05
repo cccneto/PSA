@@ -1,0 +1,160 @@
+---
+title: "Análise Lista de Iniciativas de PSA"
+author: "Claudiano Cruz Neto"
+date: "20/02/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r include=FALSE}
+library(tidyverse)
+library(readxl)
+```
+
+# Carregando base de Dados
+
+```{r include=FALSE}
+base_iniciativas <- read_excel("C:/Users/User/Documents/GitHub/PSA/data/base_iniciativas.xlsx")
+
+```
+
+
+```{r eval=FALSE, include=FALSE}
+DT::datatable(base_iniciativas)
+```
+
+# Quais as principais experiências de PSA no Brasil?
+ 
+ 
+ 
+# Área de atuação (estado, região) por grupos alvos; 
+
+
+```{r include=FALSE}
+ gp <- base_iniciativas %>% 
+      select(bioma, grupo_alvo) %>% 
+       group_by(bioma) 
+```
+
+ 
+```{r echo=FALSE}
+gp %>% 
+  summarise(Quantidade = n()) %>% 
+  filter(bioma != "Nacional") %>% 
+  mutate(bioma = fct_reorder(bioma, Quantidade, .fun= sum)) %>% 
+  arrange(desc(bioma)) %>% 
+  ggplot2::ggplot() + (aes(x = bioma, y = Quantidade)) + 
+  geom_bar(stat = "identity") +
+  theme_classic() + 
+  coord_flip() +
+  scale_y_continuous() +
+  labs(
+    title = "Distribuição das Iniciativas por Bioma ou sobreposições", 
+    x = "", 
+    y = "")
+
+```
+
+Aproximadamente 66% das iniciativas de PSA estão localizadas no bioma da Mata Atlântica,  15% na Amazônia, 12% no Cerrado, 4% Caatinga, e os demais.
+ 
+
+## Quais serviços ambientais e ecossistêmicos são apoiados e quais resultados esperados? 
+
+```{r}
+base_iniciativas %>% 
+  group_by(servico_ecossistemico) %>% 
+  summarise(Quantidade = n()) %>% 
+  filter(servico_ecossistemico != "REDD") %>% 
+  filter(servico_ecossistemico != "PSA Urbano") %>% 
+  mutate(servico = fct_reorder(servico_ecossistemico, Quantidade, .fun= sum)) %>% 
+  arrange(desc(servico)) %>% 
+   na.omit() %>% 
+  ggplot2::ggplot() + (aes(x = servico, y = Quantidade)) + 
+  geom_bar(stat = "identity") +
+  theme_classic() + 
+  coord_flip() +
+  scale_y_continuous() +
+  labs(
+    title = "Distribuição das Iniciativas por Serviço Ambiental", 
+    x = "", 
+    y = "")
+
+
+
+
+
+```
+
+## Funcionamento dos mecanismos de pagamento e se são operados por agentes públicos ou privados
+
+```{r}
+# tabela
+p <- base_iniciativas %>% 
+  group_by(tipo_financiamento) %>% 
+  summarise(Quantidade = n()) %>% 
+  mutate(tipo_financiamento = fct_reorder(tipo_financiamento, Quantidade, .fun= sum)) %>% 
+  arrange(desc(tipo_financiamento)) 
+
+p
+```
+
+
+Aproximadamente 37% das iniciativas não informaram a natureza do financiamento de suas atividades. As iniciativas de financiamento Privado e Público, representam  27% e 26% respectivamente. As iniciativas com com financiamento misto representam 8% do total.
+
+
+```{r}
+p %>% 
+  mutate(Financiamento = fct_reorder(tipo_financiamento, Quantidade, .fun= sum)) %>% 
+  arrange(desc(Financiamento)) %>% 
+  filter() %>% 
+  ggplot2::ggplot() + (aes(x = Financiamento, y = Quantidade)) + 
+  geom_bar(stat = "identity") +
+  theme_classic() + 
+  coord_flip() +
+  scale_y_continuous() +
+  labs(
+    title = "Distribuição das Iniciativas por Tipo de Financiamento", 
+    x = "", 
+    y = "")
+```
+
+
+## Há informação de volumes financeiros transferidos?
+
+## Como é feito o monitoramento
+
+## É um projeto piloto ou aplicado em escala
+
+## Quem são as principais organizações implementadora de programas/projetos?
+ 
+## Quem são os principais doadores (Púbicos ou privados)? fontes de recursos?
+
+## Qual o valor total dos projetos?
+
+## Quais os parceiros mais apontados (internacionais e nacionais)?
+
+
+
+
+```{r eval=FALSE, include=FALSE}
+base_iniciativas %>% 
+  select(tipo_financiamento, bioma) %>% 
+  group_by(tipo_financiamento) %>% 
+  na.omit(tipo_financiamento) %>% 
+  summarise(Quantidade = n()) %>% 
+  
+  ggplot(mapping = aes(x = ifelse(test = tipo_financiamento == "Público", 
+                                  yes = - Quantidade, no = Quantidade), 
+                     y = bioma, fill = tipo_financiamento)) +
+  geom_col() +
+  scale_x_symmetric(labels = abs) +
+  labs(title = "Autos de Infração por Estado e enquadramento Jurídico - 1996-2021", 
+       subtitle = "Fonte: Ibamam Package via dados do Ibama",
+       x = "Número de Autos de Infração aplicados",
+       y = "",
+       fill = "Tipo de Enquadramento") +
+  theme_classic()
+```
